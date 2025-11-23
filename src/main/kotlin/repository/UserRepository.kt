@@ -8,33 +8,25 @@ import kotlin.getValue
 class UserRepository: IUserRepository {
     private val dataSource by inject<DataSource>(DataSource::class.java)
 
-    override fun getUser(): Users? {
+    override fun getUser(uid: String): Users? {
         // --- DBアクセス ---
         dataSource.connection.use { conn ->
-            println("✅ Connected to PostgreSQL!")
-
             // SELECT
-            val stmt = conn.prepareStatement("SELECT * FROM users")
-            val rs = stmt.executeQuery()
-            println("📋 users table:")
-            while (rs.next()) {
-                val id = rs.getInt("id")
-                val name = rs.getString("display_name")
-                val email = rs.getString("email")
-                val authProvider = rs.getString("auth_provider")
-                val authId = rs.getString("auth_uid")
-                val created = rs.getTimestamp("created_at")
-                val updated = rs.getTimestamp("updated_at")
-
-                return Users(
-                    id = id,
-                    displayName = name,
-                    email = email,
-                    authProvider = authProvider,
-                    authId = authId,
-                    createdAt = created,
-                    updatedAt = updated
-                )
+            conn.prepareStatement("SELECT * FROM users WHERE auth_uid = ?").use { stmt ->
+                stmt.setString(1, uid)
+                stmt.executeQuery().use { result ->
+                    if (result.next()) {
+                        return Users(
+                            id = result.getInt("id"),
+                            displayName = result.getString("display_name"),
+                            email = result.getString("email"),
+                            authProvider = result.getString("auth_provider"),
+                            authId = result.getString("auth_uid"),
+                            createdAt = result.getTimestamp("created_at"),
+                            updatedAt = result.getTimestamp("updated_at")
+                        )
+                    }
+                }
             }
         }
 

@@ -1,8 +1,10 @@
 package com.example
 
-import com.example.repository.FirebaseService
+import com.example.service.FirebaseService
 import com.example.repository.IUserRepository
 import com.example.repository.UserRepository
+import com.example.service.IUserService
+import com.example.service.UserService
 import com.google.auth.oauth2.GoogleCredentials
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
@@ -29,8 +31,9 @@ object KoinModule {
         single<IUserRepository> { UserRepository() }
 
         single<FirebaseService> {
+            val credentialsPath = System.getenv("FIREBASE_CREDENTIALS_PATH") ?: "serviceAccountKey.json"
             val serviceAccount =
-                FileInputStream("serviceAccountKey.json")
+                FileInputStream(credentialsPath)
 
             val options: FirebaseOptions? = FirebaseOptions.builder()
                 .setCredentials(GoogleCredentials.fromStream(serviceAccount))
@@ -40,5 +43,7 @@ object KoinModule {
 
             FirebaseService()
         }
+
+        single<IUserService> { UserService() }
     }
 }
