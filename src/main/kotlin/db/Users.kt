@@ -6,6 +6,7 @@ data class Users(
     val id: Int,
     val displayName: String,
     val email: String,
+    val passwordHash: String,
     val authProvider: String,
     val authId: String,
     val createdAt: Date,

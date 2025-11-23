@@ -42,4 +42,5 @@ dependencies {
     implementation("com.google.firebase:firebase-admin:9.7.0")
     implementation("io.ktor:ktor-serialization-kotlinx-json")
     implementation("io.ktor:ktor-server-content-negotiation")
+    implementation("at.favre.lib:bcrypt:0.9.0")
 }
