@@ -2,10 +2,8 @@ package com.example.repository
 
 import com.example.db.Users
 import org.koin.java.KoinJavaComponent.inject
-import java.util.Date
 import javax.sql.DataSource
 import kotlin.getValue
-import kotlin.io.use
 
 class UserRepository: IUserRepository {
     private val dataSource by inject<DataSource>(DataSource::class.java)
@@ -29,7 +27,7 @@ class UserRepository: IUserRepository {
                 val updated = rs.getTimestamp("updated_at")
 
                 return Users(
-                    id = id.toString(),
+                    id = id,
                     displayName = name,
                     email = email,
                     authProvider = authProvider,

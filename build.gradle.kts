@@ -35,6 +35,7 @@ dependencies {
     implementation("io.insert-koin:koin-core:3.5.6")
 
     testImplementation(kotlin("test"))
-    implementation("org.postgresql:postgresql:42.7.4")
+    implementation("org.postgresql:postgresql:42.7.7")
     implementation("com.zaxxer:HikariCP:5.1.0")
+    implementation("com.google.firebase:firebase-admin:9.7.0")
 }
