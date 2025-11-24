@@ -1,19 +1,39 @@
-version: "3.9"
+networks: { internal: {} }
 
 services:
-  db:
-    build: .
-    container_name: my-postgres-deckflow
+  app:
+    build:
+      context: .                          # ★ このディレクトリに今の Dockerfile がある想定
+      dockerfile: Dockerfile
+    container_name: deckflowserver-app
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
     environment:
-      POSTGRES_DB: app
-      POSTGRES_USER: app
+      DB_URL: jdbc:postgresql://db:5432/deckflow
+      DB_USER: deckflow_user
+      DB_PASSWORD: secret
+      FIREBASE_CREDENTIALS_PATH: /app/serviceAccountKey.json
+    volumes:
+      - ./serviceAccountKey.json:/app/serviceAccountKey.json:ro
+    networks:
+      - internal
+
+  db:
+    image: postgres:16                    # ★ ここは必ず postgres 公式イメージ
+    container_name: deckflowserver-db
+    environment:
+      POSTGRES_DB: deckflow               # 好きなDB名
+      POSTGRES_USER: deckflow_user
       POSTGRES_PASSWORD: secret
     ports:
-      - "15432:5432"
+      - "15432:5432"                      # ホスト:コンテナ
     volumes:
       - db-data:/var/lib/postgresql/data
       - ./initdb:/docker-entrypoint-initdb.d
-    restart: unless-stopped
+    networks:
+      - internal
 
 volumes:
   db-data:

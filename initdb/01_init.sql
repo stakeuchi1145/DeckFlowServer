@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS users (
     id              BIGSERIAL       PRIMARY KEY,
     display_name    VARCHAR(64)     NOT NULL,
     email           VARCHAR(255)    NOT NULL,
+    password_hash   VARCHAR(100)    NOT NULL,
     auth_provider   VARCHAR(32)     NOT NULL,  -- "firebase" など
     auth_uid        VARCHAR(255)    NOT NULL,  -- Firebase UID など
     created_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
