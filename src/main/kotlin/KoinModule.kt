@@ -1,9 +1,13 @@
 package com.example
 
+import com.example.repository.IUserCardsRepository
 import com.example.service.FirebaseService
 import com.example.repository.IUserRepository
+import com.example.repository.UserCardsRepository
 import com.example.repository.UserRepository
+import com.example.service.IUserCardsService
 import com.example.service.IUserService
+import com.example.service.UserCardsService
 import com.example.service.UserService
 import com.google.auth.oauth2.GoogleCredentials
 import com.google.firebase.FirebaseApp
@@ -29,6 +33,7 @@ object KoinModule {
         }
 
         single<IUserRepository> { UserRepository() }
+        single<IUserCardsRepository> { UserCardsRepository() }
 
         single<FirebaseService> {
             val credentialsPath = System.getenv("FIREBASE_CREDENTIALS_PATH") ?: "serviceAccountKey.json"
@@ -45,5 +50,6 @@ object KoinModule {
         }
 
         single<IUserService> { UserService() }
+        single<IUserCardsService> { UserCardsService() }
     }
 }
