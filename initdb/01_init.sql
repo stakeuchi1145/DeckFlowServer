@@ -18,7 +18,22 @@ CREATE UNIQUE INDEX IF NOT EXISTS users_email_uq
 CREATE UNIQUE INDEX IF NOT EXISTS users_auth_provider_uid_uq
     ON users (auth_provider, auth_uid);
 
+-- ========================================================
+-- regulation_marks : レギュレーションマークマスタ
+-- 例：E, F, G, H など
+-- ========================================================
+CREATE TABLE IF NOT EXISTS regulation_marks (
+    id          BIGSERIAL       PRIMARY KEY,
+    code        VARCHAR(16)     NOT NULL,        -- 'E', 'F', 'G' など
+    name        VARCHAR(64)     NOT NULL,        -- 表示名（例：レギュマークE）
+    description TEXT,
+    symbol      VARCHAR(32),                     -- 画面用シンボル（任意）
+    created_at  TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ     NOT NULL DEFAULT NOW()
+    );
 
+CREATE UNIQUE INDEX IF NOT EXISTS regulation_marks_code_uq
+    ON regulation_marks (code);
 
 -- ========================================================
 -- regulations : レギュレーションマスタ
@@ -37,7 +52,17 @@ CREATE TABLE IF NOT EXISTS regulations (
 CREATE UNIQUE INDEX IF NOT EXISTS regulations_code_uq
     ON regulations (code);
 
+CREATE TABLE IF NOT EXISTS regulation_allowed_marks (
+    regulation_id       BIGINT  NOT NULL REFERENCES regulations(id) ON DELETE CASCADE,
+    regulation_mark_id  BIGINT  NOT NULL REFERENCES regulation_marks(id) ON DELETE CASCADE,
+    PRIMARY KEY (regulation_id, regulation_mark_id)
+    );
 
+CREATE INDEX IF NOT EXISTS regulation_allowed_marks_reg_idx
+    ON regulation_allowed_marks (regulation_id);
+
+CREATE INDEX IF NOT EXISTS regulation_allowed_marks_mark_idx
+    ON regulation_allowed_marks (regulation_mark_id);
 
 -- ========================================================
 -- card_types : カード種別マスタ
@@ -54,6 +79,23 @@ CREATE UNIQUE INDEX IF NOT EXISTS card_types_code_uq
     ON card_types (code);
 
 
+CREATE TABLE packs
+(
+    id           BIGSERIAL PRIMARY KEY,
+    name         VARCHAR(255) NOT NULL,
+    code         VARCHAR(32)  NOT NULL,
+    total_cards  INTEGER CHECK (total_cards >= 0),
+    release_date DATE,
+    image_url    TEXT,
+    created_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX packs_code_uq
+    ON packs (code);
+
+ALTER TABLE packs
+    ADD COLUMN regulation_mark_id BIGINT REFERENCES regulation_marks(id);
 
 -- ========================================================
 -- cards : カードマスタ
@@ -63,8 +105,9 @@ CREATE TABLE IF NOT EXISTS cards (
     name                VARCHAR(255)    NOT NULL,
     number              VARCHAR(64),
     set_name            VARCHAR(255),
-    regulation_id       BIGINT          REFERENCES regulations(id),
     card_type_id        BIGINT          REFERENCES card_types(id),
+    pack_id BIGINT NOT NULL REFERENCES packs(id),
+    rarity VARCHAR(32),
     image_url           TEXT,
     created_by_user_id  BIGINT          REFERENCES users(id),
     created_at          TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
@@ -77,9 +120,8 @@ CREATE INDEX IF NOT EXISTS cards_name_idx
 CREATE INDEX IF NOT EXISTS cards_number_idx
     ON cards (number);
 
-CREATE INDEX IF NOT EXISTS cards_regulation_idx
-    ON cards (regulation_id);
-
+CREATE UNIQUE INDEX IF NOT EXISTS cards_uq
+    ON cards (pack_id, number);
 
 
 -- ========================================================
@@ -90,7 +132,6 @@ CREATE TABLE IF NOT EXISTS user_cards (
     user_id     BIGINT          NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     card_id     BIGINT          NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
     quantity    INTEGER         NOT NULL CHECK (quantity >= 0),
-    condition   VARCHAR(64),
     location    VARCHAR(128),
     created_at  TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMPTZ     NOT NULL DEFAULT NOW()

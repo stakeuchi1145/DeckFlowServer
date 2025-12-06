@@ -29,7 +29,6 @@ fun Application.module() {
             bearer("auth-bearer") {
                 realm = "Access to the '/' path"
                 authenticate { tokenCredential ->
-                    println("tokenCredential: ${tokenCredential.token}")
                     val uid = firebaseService.getUid(tokenCredential.token)
                     UserIdPrincipal(uid)
                 }
