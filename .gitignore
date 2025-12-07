@@ -38,3 +38,4 @@ out/
 ### Mac ###
 .DS_Store
 serviceAccountKey.json
+seed-images/
