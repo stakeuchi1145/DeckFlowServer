@@ -88,8 +88,24 @@ fun Application.configureRouting() {
                 val uid = call.principal<UserIdPrincipal>()?.name
                 uid?.let {
                     val request = call.receive<MyCardRequest>()
+                    val cardName = request.cardName ?: return@post call.respond(HttpStatusCode.BadRequest, "cardId is missing")
+                    val code = request.code ?: return@post call.respond(HttpStatusCode.BadRequest, "code is missing")
+                    val packName = request.packName ?: return@post call.respond(HttpStatusCode.BadRequest, "packName is missing")
+                    val quantity = request.quantity ?: return@post call.respond(HttpStatusCode.BadRequest, "quantity is missing")
+                    val location = request.location ?: return@post call.respond(HttpStatusCode.BadRequest, "location is missing")
+                    val email: String = userService.getUser(uid)?.email ?: return@post call.respond(HttpStatusCode.BadRequest, "email is missing")
 
                     CoroutineScope(Dispatchers.Main).launch {
+                        if (email.isNotEmpty() && cardName.isNotEmpty() && code.isNotEmpty() && packName.isNotEmpty()) {
+                            val result = userCardsService.registerUserCard(email, cardName, code, packName, quantity, location)
+                            if (result) {
+                                call.respond(HttpStatusCode.OK, "Card registered successfully")
+                            } else {
+                                call.respond(HttpStatusCode.InternalServerError, "Failed to register card")
+                            }
+                        } else {
+                            call.respond(HttpStatusCode.BadRequest, "Invalid data")
+                        }
                     }
                 } ?: call.respond(HttpStatusCode.Unauthorized, "Token is missing or invalid")
             }
@@ -119,6 +135,11 @@ fun Application.configureRouting() {
                 } ?: call.respond(HttpStatusCode.Unauthorized, "Token is missing or invalid")
             }
 
+            post("cards") {
+                val uid = call.principal<UserIdPrincipal>()?.name
+                uid?.let {
+                } ?: call.respond(HttpStatusCode.Unauthorized, "Token is missing or invalid")
+            }
             get("packs") {
                 val uid = call.principal<UserIdPrincipal>()?.name
 

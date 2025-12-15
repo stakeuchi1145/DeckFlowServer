@@ -6,7 +6,7 @@ import org.koin.java.KoinJavaComponent.inject
 import javax.sql.DataSource
 
 class CardRepository : ICardRepository {
-    val dataSource by inject<DataSource>(DataSource::class.java)
+    private val dataSource by inject<DataSource>(DataSource::class.java)
 
     override fun getCardList(): List<Cards> {
         val sql = SqlLoader.load("cards/select_cards.sql")

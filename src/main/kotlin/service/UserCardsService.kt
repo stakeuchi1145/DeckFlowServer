@@ -10,4 +10,15 @@ class UserCardsService : IUserCardsService {
     override fun getUserCardByUid(uid: String): List<UserCard> {
         return userCardsRepository.getUserCardByUid(uid)
     }
+
+    override suspend fun registerUserCard(
+        email: String,
+        cardName: String,
+        code: String,
+        number: String,
+        quantity: Int,
+        location: String
+    ): Boolean {
+        return userCardsRepository.registerUserCard(email, cardName, code, number, quantity, location)
+    }
 }

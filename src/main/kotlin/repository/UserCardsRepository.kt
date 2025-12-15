@@ -36,20 +36,40 @@ class UserCardsRepository : IUserCardsRepository {
         return cards
     }
 
-    override suspend fun registerUserCard(email: String) {
+    override suspend fun registerUserCard(
+        email: String,
+        cardName: String,
+        code: String,
+        number: String,
+        quantity: Int,
+        location: String
+    ): Boolean {
         dataSource.tx { conn ->
             conn.autoCommit = false
-
-            val sql = SqlLoader.load("user_cards/insert_user_card.sql")
-            conn.prepareStatement(sql).use { stmt ->
-                stmt.setString(1, email)
-                stmt.setString(2, userCard.imageURL)
-                stmt.setString(3, userCard.packName)
-                stmt.setInt(4, userCard.quantity)
-                stmt.setString()
-                stmt.setString()
-                stmt.executeUpdate()
+            try {
+                val sql = SqlLoader.load("user_cards/insert_user_card.sql")
+                conn.prepareStatement(sql).use { stmt ->
+                    stmt.setString(1, email)
+                    stmt.setString(2, cardName)
+                    stmt.setString(3, code)
+                    stmt.setString(4, number)
+                    stmt.setInt(5, quantity)
+                    stmt.setString(6, location)
+                    stmt.executeQuery().use { result ->
+                        if (result.next()) {
+                            val userId = result.getInt("user_id")
+                            return@tx userId > 0
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                conn.rollback()
+                throw e
+            } finally {
+                conn.autoCommit = true
             }
         }
+
+        return false
     }
 }

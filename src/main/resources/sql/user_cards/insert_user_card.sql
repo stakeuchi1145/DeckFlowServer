@@ -5,4 +5,4 @@ SELECT
     ?,
     ?
 ON CONFLICT (user_id, card_id) DO UPDATE SET quantity = excluded.quantity, location = excluded.location
-RETURNING id
+RETURNING id;
