@@ -28,18 +28,15 @@ WHERE r.code = 'STANDARD'
 -- ========================================================
 -- 3. packs : パック
 -- ========================================================
-INSERT INTO packs (name, code, total_cards, release_date, regulation_mark_id, image_url)
+INSERT INTO packs (name, code, total_cards, release_date, image_url)
 VALUES
     ('スカーレットex', 'sv1S', 78, '2024-01-20',
-     (SELECT id FROM regulation_marks WHERE code = 'G'),
      ''
     ),
     ('超電ブレイカー', 'sv8', 106, '2024-10-18',
-     (SELECT id FROM regulation_marks WHERE code = 'H'),
      ''
     ),
     ('MEGAドリームex', 'm2a', 193, '2025-11-28',
-     (SELECT id FROM regulation_marks WHERE code = 'I'),
      ''
     );
 
@@ -50,13 +47,14 @@ VALUES
 -- ========================================================
 
 -- コライドンex
-INSERT INTO cards (name, number, set_name, card_type_id, pack_id, rarity, image_url, created_by_user_id)
+INSERT INTO cards (name, number, card_type_id, pack_id, rarity, image_url, regulation_mark_id, created_by_user_id)
 SELECT
-    'コライドンex', '050/078', 'sv1S',
+    'コライドンex', '050/078',
     (SELECT id FROM card_types WHERE code = 'POKEMON'),
     (SELECT id FROM packs WHERE code = 'sv1S'),
     'RR',
     'card-images/sv1S/050.jpg',
+    (SELECT id FROM regulation_marks WHERE code = 'G'),
     (SELECT id FROM users WHERE email = 'taro@example.com')
     WHERE NOT EXISTS (
     SELECT 1 FROM cards
@@ -65,13 +63,14 @@ SELECT
 );
 
 -- ピカチュウex
-INSERT INTO cards (name, number, set_name, card_type_id, pack_id, rarity, image_url, created_by_user_id)
+INSERT INTO cards (name, number, card_type_id, pack_id, rarity, image_url, regulation_mark_id, created_by_user_id)
 SELECT
-    'ピカチュウex', '033/106', 'sv8',
+    'ピカチュウex', '033/106',
     (SELECT id FROM card_types WHERE code = 'POKEMON'),
     (SELECT id FROM packs WHERE code = 'sv8'),
     'RR',
     'card-images/sv8/033.jpg',
+    (SELECT id FROM regulation_marks WHERE code = 'G'),
     (SELECT id FROM users WHERE email = 'taro@example.com')
     WHERE NOT EXISTS (
     SELECT 1 FROM cards
@@ -80,13 +79,14 @@ SELECT
 );
 
 -- ピカチュウex
-INSERT INTO cards (name, number, set_name, card_type_id, pack_id, rarity, image_url, created_by_user_id)
+INSERT INTO cards (name, number, card_type_id, pack_id, rarity, image_url, regulation_mark_id, created_by_user_id)
 SELECT
-    'ピカチュウex', '122/106', 'sv8',
+    'ピカチュウex', '122/106',
     (SELECT id FROM card_types WHERE code = 'POKEMON'),
     (SELECT id FROM packs WHERE code = 'sv8'),
     'SR',
     'card-images/sv8/122.jpg',
+    (SELECT id FROM regulation_marks WHERE code = 'G'),
     (SELECT id FROM users WHERE email = 'taro@example.com')
     WHERE NOT EXISTS (
     SELECT 1 FROM cards
@@ -95,13 +95,14 @@ SELECT
 );
 
 -- ヒビキのホウオウex
-INSERT INTO cards (name, number, set_name, card_type_id, pack_id, rarity, image_url, created_by_user_id)
+INSERT INTO cards (name, number, card_type_id, pack_id, rarity, image_url, regulation_mark_id, created_by_user_id)
 SELECT
-    'ヒビキのホウオウex', '021/193', 'm2a',
+    'ヒビキのホウオウex', '021/193',
     (SELECT id FROM card_types WHERE code = 'POKEMON'),
     (SELECT id FROM packs WHERE code = 'm2a'),
     'RR',
     'card-images/m2a/021.jpg',
+    (SELECT id FROM regulation_marks WHERE code = 'G'),
     (SELECT id FROM users WHERE email = 'taro@example.com')
     WHERE NOT EXISTS (
     SELECT 1 FROM cards
@@ -110,13 +111,14 @@ SELECT
 );
 
 -- ピカチュウex
-INSERT INTO cards (name, number, set_name, card_type_id, pack_id, rarity, image_url, created_by_user_id)
+INSERT INTO cards (name, number, card_type_id, pack_id, rarity, image_url, regulation_mark_id, created_by_user_id)
 SELECT
-    'ピカチュウex', '044/193', 'm2a',
+    'ピカチュウex', '044/193',
     (SELECT id FROM card_types WHERE code = 'POKEMON'),
     (SELECT id FROM packs WHERE code = 'm2a'),
     'RR',
     'card-images/m2a/044.jpg',
+    (SELECT id FROM regulation_marks WHERE code = 'G'),
     (SELECT id FROM users WHERE email = 'taro@example.com')
     WHERE NOT EXISTS (
     SELECT 1 FROM cards

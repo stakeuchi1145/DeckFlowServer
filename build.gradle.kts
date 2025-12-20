@@ -43,4 +43,7 @@ dependencies {
     implementation("io.ktor:ktor-serialization-kotlinx-json")
     implementation("io.ktor:ktor-server-content-negotiation")
     implementation("at.favre.lib:bcrypt:0.9.0")
+
+    implementation("software.amazon.awssdk:s3:2.25.32")
+    implementation("net.coobird:thumbnailator:0.4.20")
 }

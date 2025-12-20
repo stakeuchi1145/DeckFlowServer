@@ -94,9 +94,6 @@ CREATE TABLE packs
 CREATE UNIQUE INDEX packs_code_uq
     ON packs (code);
 
-ALTER TABLE packs
-    ADD COLUMN regulation_mark_id BIGINT REFERENCES regulation_marks(id);
-
 -- ========================================================
 -- cards : カードマスタ
 -- ========================================================
@@ -104,11 +101,11 @@ CREATE TABLE IF NOT EXISTS cards (
     id                  BIGSERIAL       PRIMARY KEY,
     name                VARCHAR(255)    NOT NULL,
     number              VARCHAR(64),
-    set_name            VARCHAR(255),
     card_type_id        BIGINT          REFERENCES card_types(id),
     pack_id BIGINT NOT NULL REFERENCES packs(id),
     rarity VARCHAR(32),
     image_url           TEXT,
+    regulation_mark_id BIGINT REFERENCES regulation_marks(id),
     created_by_user_id  BIGINT          REFERENCES users(id),
     created_at          TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
     updated_at          TIMESTAMPTZ     NOT NULL DEFAULT NOW()
@@ -122,7 +119,6 @@ CREATE INDEX IF NOT EXISTS cards_number_idx
 
 CREATE UNIQUE INDEX IF NOT EXISTS cards_uq
     ON cards (pack_id, number);
-
 
 -- ========================================================
 -- user_cards : ユーザー所持カード

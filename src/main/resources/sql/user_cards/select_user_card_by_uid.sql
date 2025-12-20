@@ -7,7 +7,7 @@ SELECT uc.id,
            WHEN EXISTS (SELECT 1
                         FROM regulation_allowed_marks ram
                                  JOIN regulations r ON ram.regulation_id = r.id
-                        WHERE ram.regulation_mark_id = p.regulation_mark_id
+                        WHERE ram.regulation_mark_id = c.regulation_mark_id
                           AND r.code = 'STANDARD')
                THEN TRUE
            ELSE FALSE

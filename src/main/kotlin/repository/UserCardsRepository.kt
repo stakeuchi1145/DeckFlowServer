@@ -2,6 +2,7 @@ package com.example.repository
 
 import com.example.db.SqlLoader
 import com.example.db.UserCard
+import com.example.util.tx
 import org.koin.java.KoinJavaComponent.inject
 import javax.sql.DataSource
 import kotlin.getValue
@@ -33,5 +34,34 @@ class UserCardsRepository : IUserCardsRepository {
         }
 
         return cards
+    }
+
+    override suspend fun registerUserCard(
+        email: String,
+        cardName: String,
+        code: String,
+        number: String,
+        quantity: Int,
+        location: String
+    ): Boolean {
+        return dataSource.tx { conn ->
+            val sql = SqlLoader.load("user_cards/insert_user_card.sql")
+            conn.prepareStatement(sql).use { stmt ->
+                stmt.setString(1, email)
+                stmt.setString(2, cardName)
+                stmt.setString(3, code)
+                stmt.setString(4, number)
+                stmt.setInt(5, quantity)
+                stmt.setString(6, location)
+                stmt.executeQuery().use { result ->
+                    if (result.next()) {
+                        val cardId = result.getInt("id")
+                        cardId > 0
+                    } else {
+                        false
+                    }
+                }
+            }
+        }
     }
 }
