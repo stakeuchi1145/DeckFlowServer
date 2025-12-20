@@ -148,7 +148,6 @@ fun Application.configureRouting() {
                 uid?.let { uid ->
                     val multipart = call.receiveMultipart()
                     var request: CardRequest? = null
-                    var fileName = ""
                     var contentType = ""
                     var imageBytes = byteArrayOf()
 
@@ -160,7 +159,6 @@ fun Application.configureRouting() {
                                 }
                             }
                             is PartData.FileItem -> {
-                                fileName = part.originalFileName ?: ""
                                 contentType = part.contentType?.toString() ?: ""
                                 imageBytes = part.streamProvider().readBytes()
                             }
@@ -177,6 +175,7 @@ fun Application.configureRouting() {
                         val packCode = it.packCode ?: return@post call.respond(HttpStatusCode.BadRequest, "packName is missing")
                         val rarity = it.rarity ?: return@post call.respond(HttpStatusCode.BadRequest, "rarity is missing")
                         val regulationMarkCode = it.regulationMarkCode ?: return@post call.respond(HttpStatusCode.BadRequest, "regulationMark is missing")
+                        val fileName = it.fileName ?: ""
 
                         if (name.isEmpty() || number.isEmpty() || cardType.isEmpty() || packCode.isEmpty() || rarity.isEmpty() || regulationMarkCode.isEmpty()) {
                             return@post call.respond(HttpStatusCode.BadRequest, "Invalid data")
@@ -240,7 +239,6 @@ fun Application.configureRouting() {
                 uid?.let {
                     val multipart = call.receiveMultipart()
                     var request: PackRequest? = null
-                    var fileName = ""
                     var contentType = ""
                     var imageBytes = byteArrayOf()
 
@@ -252,7 +250,6 @@ fun Application.configureRouting() {
                                 }
                             }
                             is PartData.FileItem -> {
-                                fileName = part.originalFileName ?: ""
                                 contentType = part.contentType?.toString() ?: ""
                                 imageBytes = part.streamProvider().readBytes()
                             }
@@ -267,6 +264,7 @@ fun Application.configureRouting() {
                         val code = it.code ?: return@post call.respond(HttpStatusCode.BadRequest, "code is missing")
                         val totalCards = it.totalCards
                         val releaseDate = it.releaseDate ?: return@post call.respond(HttpStatusCode.BadRequest, "releaseDate is missing")
+                        val fileName = it.fileName ?: ""
 
                         if (name.isEmpty() || code.isEmpty() || totalCards <= 0 || releaseDate.isEmpty()) {
                             return@post call.respond(HttpStatusCode.BadRequest, "Invalid data")

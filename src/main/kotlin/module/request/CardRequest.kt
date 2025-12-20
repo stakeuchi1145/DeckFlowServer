@@ -10,4 +10,5 @@ data class CardRequest(
     val packCode: String?,
     val rarity: String?,
     val regulationMarkCode: String?,
+    val fileName: String?
 )

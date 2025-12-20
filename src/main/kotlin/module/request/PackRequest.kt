@@ -7,5 +7,6 @@ data class PackRequest(
     val name: String?,
     val code: String?,
     val totalCards: Int,
-    val releaseDate: String?
+    val releaseDate: String?,
+    val fileName: String?
 )
