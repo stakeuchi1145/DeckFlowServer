@@ -44,32 +44,24 @@ class UserCardsRepository : IUserCardsRepository {
         quantity: Int,
         location: String
     ): Boolean {
-        dataSource.tx { conn ->
-            conn.autoCommit = false
-            try {
-                val sql = SqlLoader.load("user_cards/insert_user_card.sql")
-                conn.prepareStatement(sql).use { stmt ->
-                    stmt.setString(1, email)
-                    stmt.setString(2, cardName)
-                    stmt.setString(3, code)
-                    stmt.setString(4, number)
-                    stmt.setInt(5, quantity)
-                    stmt.setString(6, location)
-                    stmt.executeQuery().use { result ->
-                        if (result.next()) {
-                            val userId = result.getInt("user_id")
-                            return@tx userId > 0
-                        }
+        return dataSource.tx { conn ->
+            val sql = SqlLoader.load("user_cards/insert_user_card.sql")
+            conn.prepareStatement(sql).use { stmt ->
+                stmt.setString(1, email)
+                stmt.setString(2, cardName)
+                stmt.setString(3, code)
+                stmt.setString(4, number)
+                stmt.setInt(5, quantity)
+                stmt.setString(6, location)
+                stmt.executeQuery().use { result ->
+                    if (result.next()) {
+                        val userId = result.getInt("user_id")
+                        userId > 0
+                    } else {
+                        false
                     }
                 }
-            } catch (e: Exception) {
-                conn.rollback()
-                throw e
-            } finally {
-                conn.autoCommit = true
             }
         }
-
-        return false
     }
 }

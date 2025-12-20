@@ -1,6 +1,7 @@
 package com.example
 
 import com.example.module.request.MyCardRequest
+import com.example.module.request.PackRequest
 import com.example.module.response.Card
 import com.example.module.response.GetCardListResponse
 import com.example.module.response.GetMyCardListResponse
@@ -14,23 +15,28 @@ import com.example.service.IUserCardsService
 import com.example.service.IUserService
 import com.example.util.format
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.PartData
+import io.ktor.http.content.forEachPart
+import io.ktor.http.content.streamProvider
 import io.ktor.server.application.*
 import io.ktor.server.auth.UserIdPrincipal
 import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
+import io.ktor.server.request.receiveMultipart
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import org.koin.java.KoinJavaComponent.inject
+import software.amazon.awssdk.core.sync.RequestBody
+import software.amazon.awssdk.services.s3.S3Client
+import software.amazon.awssdk.services.s3.model.PutObjectRequest
 
 fun Application.configureRouting() {
     val userService: IUserService by inject(IUserService::class.java)
     val userCardsService: IUserCardsService by inject(IUserCardsService::class.java)
     val cardService: ICardService by inject(ICardService::class.java)
     val packService: IPackService by inject(IPackService::class.java)
+    val s3Client: S3Client by inject(S3Client::class.java)
 
     routing {
         get("/") {
@@ -88,24 +94,22 @@ fun Application.configureRouting() {
                 val uid = call.principal<UserIdPrincipal>()?.name
                 uid?.let {
                     val request = call.receive<MyCardRequest>()
-                    val cardName = request.cardName ?: return@post call.respond(HttpStatusCode.BadRequest, "cardId is missing")
+                    val cardName = request.cardName ?: return@post call.respond(HttpStatusCode.BadRequest, "cardName is missing")
                     val code = request.code ?: return@post call.respond(HttpStatusCode.BadRequest, "code is missing")
                     val packName = request.packName ?: return@post call.respond(HttpStatusCode.BadRequest, "packName is missing")
                     val quantity = request.quantity ?: return@post call.respond(HttpStatusCode.BadRequest, "quantity is missing")
                     val location = request.location ?: return@post call.respond(HttpStatusCode.BadRequest, "location is missing")
                     val email: String = userService.getUser(uid)?.email ?: return@post call.respond(HttpStatusCode.BadRequest, "email is missing")
 
-                    CoroutineScope(Dispatchers.Main).launch {
-                        if (email.isNotEmpty() && cardName.isNotEmpty() && code.isNotEmpty() && packName.isNotEmpty()) {
-                            val result = userCardsService.registerUserCard(email, cardName, code, packName, quantity, location)
-                            if (result) {
-                                call.respond(HttpStatusCode.OK, "Card registered successfully")
-                            } else {
-                                call.respond(HttpStatusCode.InternalServerError, "Failed to register card")
-                            }
+                    if (email.isNotEmpty() && cardName.isNotEmpty() && code.isNotEmpty() && packName.isNotEmpty()) {
+                        val result = userCardsService.registerUserCard(email, cardName, code, packName, quantity, location)
+                        if (result) {
+                            call.respond(HttpStatusCode.OK, "Card registered successfully")
                         } else {
-                            call.respond(HttpStatusCode.BadRequest, "Invalid data")
+                            call.respond(HttpStatusCode.InternalServerError, "Failed to register card")
                         }
+                    } else {
+                        call.respond(HttpStatusCode.BadRequest, "Invalid data")
                     }
                 } ?: call.respond(HttpStatusCode.Unauthorized, "Token is missing or invalid")
             }
@@ -138,8 +142,10 @@ fun Application.configureRouting() {
             post("cards") {
                 val uid = call.principal<UserIdPrincipal>()?.name
                 uid?.let {
+                    call.respond(HttpStatusCode.OK, "Card registered successfully")
                 } ?: call.respond(HttpStatusCode.Unauthorized, "Token is missing or invalid")
             }
+
             get("packs") {
                 val uid = call.principal<UserIdPrincipal>()?.name
 
@@ -164,6 +170,44 @@ fun Application.configureRouting() {
                         GetPackListResponse(packs)
                     )
                 } ?: call.respond(HttpStatusCode.Unauthorized, "Token is missing or invalid")
+            }
+
+            post("packs") {
+                val uid = call.principal<UserIdPrincipal>()?.name
+                uid?.let {
+                    val  request = call.receive<PackRequest>()
+                    val multipart = call.receiveMultipart()
+
+                    val name = request.name ?: return@post call.respond(HttpStatusCode.BadRequest, "name is missing")
+                    val code = request.code ?: return@post call.respond(HttpStatusCode.BadRequest, "code is missing")
+                    val totalCards = request.totalCards
+                    val releaseDate = request.releaseDate ?: return@post call.respond(HttpStatusCode.BadRequest, "releaseDate is missing")
+
+                    if (name.isEmpty() || code.isEmpty() || releaseDate.isEmpty()) { return@post call.respond(HttpStatusCode.BadRequest, "Invalid data") }
+
+                    multipart.forEachPart { part ->
+                        if (part is PartData.FileItem) {
+                            val fileName = part.originalFileName ?: "${code}.png"
+                            val bytes = part.streamProvider().readBytes()
+
+                            val objectKey = "images/$fileName"
+                            s3Client.putObject(
+                                PutObjectRequest.builder()
+                                    .bucket("pack-images")
+                                    .key(objectKey)
+                                    .contentType(part.contentType?.toString() ?: "image/png")
+                                    .build(),
+                                RequestBody.fromBytes(bytes)
+                            )
+
+
+                        } else {
+                            return@forEachPart call.respond(HttpStatusCode.BadRequest, "Invalid data")
+                        }
+                    }
+
+                    call.respond(HttpStatusCode.OK, "Pack registered successfully")
+                }
             }
         }
     }

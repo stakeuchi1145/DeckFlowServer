@@ -1,6 +1,8 @@
 package com.example.repository
 
 import com.example.db.Packs
+import com.example.db.SqlLoader
+import com.example.util.tx
 import org.koin.java.KoinJavaComponent.inject
 import javax.sql.DataSource
 
@@ -22,6 +24,30 @@ class PackRepository : IPackRepository {
                                 imageUrl = result.getString("image_url")
                             )
                         )
+                    }
+                }
+            }
+        }
+    }
+
+    override suspend fun registerPack(
+        name: String,
+        code: String,
+        totalCards: Int,
+        releaseDate: String,
+        imageUrl: String
+    ): Boolean {
+        val sql = SqlLoader.load("packs/insert_pack.sql")
+        return dataSource.tx {
+            dataSource.connection.use { conn ->
+                conn.prepareStatement(sql).use { stmt ->
+                    stmt.setString(1, name)
+                    stmt.setString(2, code)
+                    stmt.setInt(3, totalCards)
+                    stmt.setString(4, releaseDate)
+                    stmt.setString(5, imageUrl)
+                    stmt.executeQuery().use {result ->
+                        return@tx result.next()
                     }
                 }
             }

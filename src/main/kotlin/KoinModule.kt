@@ -23,7 +23,12 @@ import com.google.firebase.FirebaseOptions
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import org.koin.dsl.module
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
+import software.amazon.awssdk.regions.Region
+import software.amazon.awssdk.services.s3.S3Client
 import java.io.FileInputStream
+import java.net.URI
 import javax.sql.DataSource
 
 object KoinModule {
@@ -57,6 +62,26 @@ object KoinModule {
             FirebaseApp.initializeApp(options)
 
             FirebaseService()
+        }
+
+        single<S3Client> {
+            S3Client.builder()
+                .endpointOverride(
+                    System.getenv("S3_ENDPOINT")?.let {
+                        URI(it)
+                    } ?: URI.create("http://localhost:9000")
+                )
+                .credentialsProvider(
+                    StaticCredentialsProvider.create(
+                        AwsBasicCredentials.create(
+                            System.getenv("S3_ACCESS_KEY_ID") ?: "deckflowadmin",
+                            System.getenv("S3_SECRET_ACCESS_KEY") ?: "deckflowsecret"
+                        )
+                    )
+                )
+                .region(Region.AP_NORTHEAST_1)
+                .forcePathStyle(true)
+                .build()
         }
 
         single<IUserService> { UserService() }
