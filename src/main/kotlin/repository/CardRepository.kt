@@ -43,21 +43,26 @@ class CardRepository : ICardRepository {
         regulationMarkCode: String,
         uid: String
     ): Boolean {
-        val sql = SqlLoader.load("cards/insert_card.sql")
-        return dataSource.tx { conn ->
-            conn.prepareStatement(sql).use { stmt ->
-                stmt.setString(1, name)
-                stmt.setString(2, number)
-                stmt.setString(3, cardType)
-                stmt.setString(4, packCode)
-                stmt.setString(5, rarity)
-                stmt.setString(6, imageUrl)
-                stmt.setString(7, regulationMarkCode)
-                stmt.setString(8, uid)
-                stmt.executeQuery().use {result ->
-                    return@tx result.next()
+        try {
+            val sql = SqlLoader.load("cards/insert_card.sql")
+            return dataSource.tx { conn ->
+                conn.prepareStatement(sql).use { stmt ->
+                    stmt.setString(1, name)
+                    stmt.setString(2, number)
+                    stmt.setString(3, cardType)
+                    stmt.setString(4, packCode)
+                    stmt.setString(5, rarity)
+                    stmt.setString(6, imageUrl)
+                    stmt.setString(7, regulationMarkCode)
+                    stmt.setString(8, uid)
+                    stmt.executeQuery().use { result ->
+                        return@tx result.next()
+                    }
                 }
             }
+        } catch (e: Exception) {
+            println(e.message)
+            return false
         }
     }
 }

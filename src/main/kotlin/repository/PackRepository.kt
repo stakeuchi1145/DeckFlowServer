@@ -2,6 +2,7 @@ package com.example.repository
 
 import com.example.db.Packs
 import com.example.db.SqlLoader
+import com.example.util.toDate
 import com.example.util.tx
 import org.koin.java.KoinJavaComponent.inject
 import javax.sql.DataSource
@@ -37,20 +38,26 @@ class PackRepository : IPackRepository {
         releaseDate: String,
         imageUrl: String
     ): Boolean {
-        val sql = SqlLoader.load("packs/insert_pack.sql")
-        return dataSource.tx {
-            dataSource.connection.use { conn ->
-                conn.prepareStatement(sql).use { stmt ->
-                    stmt.setString(1, name)
-                    stmt.setString(2, code)
-                    stmt.setInt(3, totalCards)
-                    stmt.setString(4, releaseDate)
-                    stmt.setString(5, imageUrl)
-                    stmt.executeQuery().use {result ->
-                        return@tx result.next()
+        try {
+            val sql = SqlLoader.load("packs/insert_pack.sql")
+            return dataSource.tx {
+                val date = java.sql.Date(releaseDate.toDate().time)
+                dataSource.connection.use { conn ->
+                    conn.prepareStatement(sql).use { stmt ->
+                        stmt.setString(1, name)
+                        stmt.setString(2, code)
+                        stmt.setInt(3, totalCards)
+                        stmt.setDate(4, date)
+                        stmt.setString(5, imageUrl)
+                        stmt.executeQuery().use {result ->
+                            return@tx result.next()
+                        }
                     }
                 }
             }
+        } catch (e: Exception) {
+            println(e.message)
+            return false
         }
     }
 }

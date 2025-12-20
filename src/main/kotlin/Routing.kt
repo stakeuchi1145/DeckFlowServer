@@ -98,14 +98,14 @@ fun Application.configureRouting() {
                 uid?.let {
                     val request = call.receive<MyCardRequest>()
                     val cardName = request.cardName ?: return@post call.respond(HttpStatusCode.BadRequest, "cardName is missing")
-                    val code = request.code ?: return@post call.respond(HttpStatusCode.BadRequest, "code is missing")
-                    val packName = request.packName ?: return@post call.respond(HttpStatusCode.BadRequest, "packName is missing")
+                    val packCode = request.packCode ?: return@post call.respond(HttpStatusCode.BadRequest, "code is missing")
+                    val cardNumber = request.cardNumber ?: return@post call.respond(HttpStatusCode.BadRequest, "packName is missing")
                     val quantity = request.quantity ?: return@post call.respond(HttpStatusCode.BadRequest, "quantity is missing")
                     val location = request.location ?: return@post call.respond(HttpStatusCode.BadRequest, "location is missing")
                     val email: String = userService.getUser(uid)?.email ?: return@post call.respond(HttpStatusCode.BadRequest, "email is missing")
 
-                    if (email.isNotEmpty() && cardName.isNotEmpty() && code.isNotEmpty() && packName.isNotEmpty()) {
-                        val result = userCardsService.registerUserCard(email, cardName, code, packName, quantity, location)
+                    if (email.isNotEmpty() && cardName.isNotEmpty() && packCode.isNotEmpty() && cardNumber.isNotEmpty()) {
+                        val result = userCardsService.registerUserCard(email, cardName, packCode, cardNumber, quantity, location)
                         if (result) {
                             call.respond(HttpStatusCode.OK, "Card registered successfully")
                         } else {
@@ -182,7 +182,7 @@ fun Application.configureRouting() {
                             return@post call.respond(HttpStatusCode.BadRequest, "Invalid data")
                         }
 
-                        if (fileName.isNotEmpty() || contentType.isNotEmpty() || imageBytes.isNotEmpty()) {
+                        if (fileName.isNotEmpty() && contentType.isNotEmpty() && imageBytes.isNotEmpty()) {
                             if (!s3Service.uploadImage("card-images", "${packCode}/$fileName", contentType, imageBytes)) {
                                 return@post call.respond(HttpStatusCode.InternalServerError, "Failed to upload image")
                             }
@@ -194,10 +194,15 @@ fun Application.configureRouting() {
                             cardType,
                             packCode,
                             rarity,
-                            if (fileName.isNotEmpty()) "${packCode}/$fileName" else "",
+                            if (fileName.isNotEmpty()) "card-images/${packCode}/$fileName" else "",
                             regulationMarkCode,
                             uid
                         )
+
+                        if (!result) {
+                            s3Service.deleteImage("card-images", "${packCode}/$fileName")
+                        }
+
                         call.respond(HttpStatusCode.OK, mapOf("result" to result))
                     } ?: return@post call.respond(HttpStatusCode.BadRequest, "Invalid data")
                 } ?: call.respond(HttpStatusCode.Unauthorized, "Token is missing or invalid")
@@ -257,7 +262,7 @@ fun Application.configureRouting() {
                         part.dispose()
                     }
 
-                    if (fileName.isNotEmpty() || contentType.isNotEmpty() || imageBytes.isNotEmpty()) {
+                    if (fileName.isNotEmpty() && contentType.isNotEmpty() && imageBytes.isNotEmpty()) {
                         if (!s3Service.uploadImage("pack-images", "images/$fileName", contentType, imageBytes)) {
                             return@post call.respond(HttpStatusCode.InternalServerError, "Failed to upload image")
                         }
@@ -273,7 +278,18 @@ fun Application.configureRouting() {
                             return@post call.respond(HttpStatusCode.BadRequest, "Invalid data")
                         }
 
-                        val result = packService.registerPack(name, code, totalCards, releaseDate, fileName)
+                        val result = packService.registerPack(
+                            name,
+                            code,
+                            totalCards,
+                            releaseDate,
+                            if (fileName.isNotEmpty()) "pack-images/images/$fileName" else ""
+                        )
+
+                        if (!result) {
+                            s3Service.deleteImage("card-images", "images/$fileName")
+                        }
+
                         call.respond(HttpStatusCode.OK, mapOf("result" to result))
                     } ?: return@post call.respond(HttpStatusCode.BadRequest, "Invalid data")
                 } ?: call.respond(HttpStatusCode.Unauthorized, "Token is missing or invalid")

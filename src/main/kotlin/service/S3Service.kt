@@ -50,7 +50,7 @@ class S3Service : IS3Service {
         return true
     }
 
-    fun compressImageToUnder(
+    private fun compressImageToUnder(
         input: ByteArray,
         maxBytes: Int = 200 * 1024,
         maxWidth: Int = 1280,
@@ -109,5 +109,20 @@ class S3Service : IS3Service {
         // 最後の手段（ギリギリまで落としたやつ）
         val last = encodeJpeg(w, h, minQuality)
         return CompressedImage(last, "image/jpeg", "jpg")
+    }
+
+    override fun deleteImage(bucketName: String, fileName: String): Boolean {
+        if (bucketName.isEmpty() || fileName.isEmpty()) {
+            return false
+        }
+
+        s3Client.deleteObject(
+            software.amazon.awssdk.services.s3.model.DeleteObjectRequest.builder()
+                .bucket(bucketName)
+                .key(fileName)
+                .build()
+        )
+
+        return true
     }
 }
