@@ -1,5 +1,6 @@
 package com.example
 
+import com.example.module.request.CardRequest
 import com.example.module.request.MyCardRequest
 import com.example.module.request.PackRequest
 import com.example.module.response.Card
@@ -11,6 +12,7 @@ import com.example.module.response.MyCard
 import com.example.module.response.Pack
 import com.example.service.ICardService
 import com.example.service.IPackService
+import com.example.service.IS3Service
 import com.example.service.IUserCardsService
 import com.example.service.IUserService
 import com.example.util.format
@@ -26,6 +28,7 @@ import io.ktor.server.request.receive
 import io.ktor.server.request.receiveMultipart
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.serialization.json.Json
 import org.koin.java.KoinJavaComponent.inject
 import software.amazon.awssdk.core.sync.RequestBody
 import software.amazon.awssdk.services.s3.S3Client
@@ -36,7 +39,7 @@ fun Application.configureRouting() {
     val userCardsService: IUserCardsService by inject(IUserCardsService::class.java)
     val cardService: ICardService by inject(ICardService::class.java)
     val packService: IPackService by inject(IPackService::class.java)
-    val s3Client: S3Client by inject(S3Client::class.java)
+    val s3Service: IS3Service by inject(IS3Service::class.java)
 
     routing {
         get("/") {
@@ -141,8 +144,62 @@ fun Application.configureRouting() {
 
             post("cards") {
                 val uid = call.principal<UserIdPrincipal>()?.name
-                uid?.let {
-                    call.respond(HttpStatusCode.OK, "Card registered successfully")
+
+                uid?.let { uid ->
+                    val multipart = call.receiveMultipart()
+                    var request: CardRequest? = null
+                    var fileName = ""
+                    var contentType = ""
+                    var imageBytes = byteArrayOf()
+
+                    multipart.forEachPart { part ->
+                        when(part) {
+                            is PartData.FormItem -> {
+                                if (part.name == "data") {
+                                    request = Json.decodeFromString(part.value)
+                                }
+                            }
+                            is PartData.FileItem -> {
+                                fileName = part.originalFileName ?: ""
+                                contentType = part.contentType?.toString() ?: ""
+                                imageBytes = part.streamProvider().readBytes()
+                            }
+                            else -> {}
+                        }
+
+                        part.dispose()
+                    }
+
+                    request?.let {
+                        val name = it.name ?: return@post call.respond(HttpStatusCode.BadRequest, "name is missing")
+                        val number = it.number ?: return@post call.respond(HttpStatusCode.BadRequest, "number is missing")
+                        val cardType = it.cardType ?: return@post call.respond(HttpStatusCode.BadRequest, "cardType is missing")
+                        val packCode = it.packCode ?: return@post call.respond(HttpStatusCode.BadRequest, "packName is missing")
+                        val rarity = it.rarity ?: return@post call.respond(HttpStatusCode.BadRequest, "rarity is missing")
+                        val regulationMarkCode = it.regulationMarkCode ?: return@post call.respond(HttpStatusCode.BadRequest, "regulationMark is missing")
+
+                        if (name.isEmpty() || number.isEmpty() || cardType.isEmpty() || packCode.isEmpty() || rarity.isEmpty() || regulationMarkCode.isEmpty()) {
+                            return@post call.respond(HttpStatusCode.BadRequest, "Invalid data")
+                        }
+
+                        if (fileName.isNotEmpty() || contentType.isNotEmpty() || imageBytes.isNotEmpty()) {
+                            if (!s3Service.uploadImage("card-images", "${packCode}/$fileName", contentType, imageBytes)) {
+                                return@post call.respond(HttpStatusCode.InternalServerError, "Failed to upload image")
+                            }
+                        }
+
+                        val result = cardService.registerCard(
+                            name,
+                            number,
+                            cardType,
+                            packCode,
+                            rarity,
+                            if (fileName.isNotEmpty()) "${packCode}/$fileName" else "",
+                            regulationMarkCode,
+                            uid
+                        )
+                        call.respond(HttpStatusCode.OK, mapOf("result" to result))
+                    } ?: return@post call.respond(HttpStatusCode.BadRequest, "Invalid data")
                 } ?: call.respond(HttpStatusCode.Unauthorized, "Token is missing or invalid")
             }
 
@@ -174,40 +231,52 @@ fun Application.configureRouting() {
 
             post("packs") {
                 val uid = call.principal<UserIdPrincipal>()?.name
+
                 uid?.let {
-                    val  request = call.receive<PackRequest>()
                     val multipart = call.receiveMultipart()
-
-                    val name = request.name ?: return@post call.respond(HttpStatusCode.BadRequest, "name is missing")
-                    val code = request.code ?: return@post call.respond(HttpStatusCode.BadRequest, "code is missing")
-                    val totalCards = request.totalCards
-                    val releaseDate = request.releaseDate ?: return@post call.respond(HttpStatusCode.BadRequest, "releaseDate is missing")
-
-                    if (name.isEmpty() || code.isEmpty() || releaseDate.isEmpty()) { return@post call.respond(HttpStatusCode.BadRequest, "Invalid data") }
+                    var request: PackRequest? = null
+                    var fileName = ""
+                    var contentType = ""
+                    var imageBytes = byteArrayOf()
 
                     multipart.forEachPart { part ->
-                        if (part is PartData.FileItem) {
-                            val fileName = part.originalFileName ?: "${code}.png"
-                            val bytes = part.streamProvider().readBytes()
+                        when(part) {
+                            is PartData.FormItem -> {
+                                if (part.name == "data") {
+                                    request = Json.decodeFromString(part.value)
+                                }
+                            }
+                            is PartData.FileItem -> {
+                                fileName = part.originalFileName ?: ""
+                                contentType = part.contentType?.toString() ?: ""
+                                imageBytes = part.streamProvider().readBytes()
+                            }
+                            else -> {}
+                        }
 
-                            val objectKey = "images/$fileName"
-                            s3Client.putObject(
-                                PutObjectRequest.builder()
-                                    .bucket("pack-images")
-                                    .key(objectKey)
-                                    .contentType(part.contentType?.toString() ?: "image/png")
-                                    .build(),
-                                RequestBody.fromBytes(bytes)
-                            )
+                        part.dispose()
+                    }
 
-
-                        } else {
-                            return@forEachPart call.respond(HttpStatusCode.BadRequest, "Invalid data")
+                    if (fileName.isNotEmpty() || contentType.isNotEmpty() || imageBytes.isNotEmpty()) {
+                        if (!s3Service.uploadImage("pack-images", "images/$fileName", contentType, imageBytes)) {
+                            return@post call.respond(HttpStatusCode.InternalServerError, "Failed to upload image")
                         }
                     }
 
-                    call.respond(HttpStatusCode.OK, "Pack registered successfully")
-                }
+                    request?.let {
+                        val name = it.name ?: return@post call.respond(HttpStatusCode.BadRequest, "name is missing")
+                        val code = it.code ?: return@post call.respond(HttpStatusCode.BadRequest, "code is missing")
+                        val totalCards = it.totalCards
+                        val releaseDate = it.releaseDate ?: return@post call.respond(HttpStatusCode.BadRequest, "releaseDate is missing")
+
+                        if (name.isEmpty() || code.isEmpty() || totalCards <= 0 || releaseDate.isEmpty()) {
+                            return@post call.respond(HttpStatusCode.BadRequest, "Invalid data")
+                        }
+
+                        val result = packService.registerPack(name, code, totalCards, releaseDate, fileName)
+                        call.respond(HttpStatusCode.OK, mapOf("result" to result))
+                    } ?: return@post call.respond(HttpStatusCode.BadRequest, "Invalid data")
+                } ?: call.respond(HttpStatusCode.Unauthorized, "Token is missing or invalid")
             }
         }
     }

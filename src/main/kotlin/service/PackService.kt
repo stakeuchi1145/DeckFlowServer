@@ -10,4 +10,8 @@ class PackService : IPackService {
     override fun getPackList(): List<Packs> {
         return packRepository.getPackList()
     }
+
+    override suspend fun registerPack(name: String, code: String, totalCards: Int, releaseDate: String, imageUrl: String): Boolean {
+        return packRepository.registerPack(name, code, totalCards, releaseDate, imageUrl)
+    }
 }

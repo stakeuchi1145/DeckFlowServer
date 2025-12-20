@@ -12,9 +12,11 @@ import com.example.repository.UserRepository
 import com.example.service.CardService
 import com.example.service.ICardService
 import com.example.service.IPackService
+import com.example.service.IS3Service
 import com.example.service.IUserCardsService
 import com.example.service.IUserService
 import com.example.service.PackService
+import com.example.service.S3Service
 import com.example.service.UserCardsService
 import com.example.service.UserService
 import com.google.auth.oauth2.GoogleCredentials
@@ -88,5 +90,6 @@ object KoinModule {
         single<IUserCardsService> { UserCardsService() }
         single<ICardService> { CardService() }
         single<IPackService> { PackService() }
+        single<IS3Service> { S3Service() }
     }
 }

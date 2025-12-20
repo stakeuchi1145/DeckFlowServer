@@ -55,8 +55,8 @@ class UserCardsRepository : IUserCardsRepository {
                 stmt.setString(6, location)
                 stmt.executeQuery().use { result ->
                     if (result.next()) {
-                        val userId = result.getInt("user_id")
-                        userId > 0
+                        val cardId = result.getInt("id")
+                        cardId > 0
                     } else {
                         false
                     }
