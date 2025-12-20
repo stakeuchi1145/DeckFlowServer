@@ -98,8 +98,8 @@ fun Application.configureRouting() {
                 uid?.let {
                     val request = call.receive<MyCardRequest>()
                     val cardName = request.cardName ?: return@post call.respond(HttpStatusCode.BadRequest, "cardName is missing")
-                    val packCode = request.packCode ?: return@post call.respond(HttpStatusCode.BadRequest, "code is missing")
-                    val cardNumber = request.cardNumber ?: return@post call.respond(HttpStatusCode.BadRequest, "packName is missing")
+                    val packCode = request.packCode ?: return@post call.respond(HttpStatusCode.BadRequest, "packCode is missing")
+                    val cardNumber = request.cardNumber ?: return@post call.respond(HttpStatusCode.BadRequest, "packCode is missing")
                     val quantity = request.quantity ?: return@post call.respond(HttpStatusCode.BadRequest, "quantity is missing")
                     val location = request.location ?: return@post call.respond(HttpStatusCode.BadRequest, "location is missing")
                     val email: String = userService.getUser(uid)?.email ?: return@post call.respond(HttpStatusCode.BadRequest, "email is missing")
@@ -142,7 +142,7 @@ fun Application.configureRouting() {
                 } ?: call.respond(HttpStatusCode.Unauthorized, "Token is missing or invalid")
             }
 
-            post("cards") {
+            post("card") {
                 val uid = call.principal<UserIdPrincipal>()?.name
 
                 uid?.let { uid ->
@@ -199,7 +199,7 @@ fun Application.configureRouting() {
                             uid
                         )
 
-                        if (!result) {
+                        if (!result && fileName.isNotEmpty()) {
                             s3Service.deleteImage("card-images", "${packCode}/$fileName")
                         }
 
@@ -234,7 +234,7 @@ fun Application.configureRouting() {
                 } ?: call.respond(HttpStatusCode.Unauthorized, "Token is missing or invalid")
             }
 
-            post("packs") {
+            post("pack") {
                 val uid = call.principal<UserIdPrincipal>()?.name
 
                 uid?.let {
@@ -262,12 +262,6 @@ fun Application.configureRouting() {
                         part.dispose()
                     }
 
-                    if (fileName.isNotEmpty() && contentType.isNotEmpty() && imageBytes.isNotEmpty()) {
-                        if (!s3Service.uploadImage("pack-images", "images/$fileName", contentType, imageBytes)) {
-                            return@post call.respond(HttpStatusCode.InternalServerError, "Failed to upload image")
-                        }
-                    }
-
                     request?.let {
                         val name = it.name ?: return@post call.respond(HttpStatusCode.BadRequest, "name is missing")
                         val code = it.code ?: return@post call.respond(HttpStatusCode.BadRequest, "code is missing")
@@ -278,6 +272,12 @@ fun Application.configureRouting() {
                             return@post call.respond(HttpStatusCode.BadRequest, "Invalid data")
                         }
 
+                        if (fileName.isNotEmpty() && contentType.isNotEmpty() && imageBytes.isNotEmpty()) {
+                            if (!s3Service.uploadImage("pack-images", "images/$fileName", contentType, imageBytes)) {
+                                return@post call.respond(HttpStatusCode.InternalServerError, "Failed to upload image")
+                            }
+                        }
+
                         val result = packService.registerPack(
                             name,
                             code,
@@ -286,7 +286,7 @@ fun Application.configureRouting() {
                             if (fileName.isNotEmpty()) "pack-images/images/$fileName" else ""
                         )
 
-                        if (!result) {
+                        if (!result && fileName.isNotEmpty()) {
                             s3Service.deleteImage("card-images", "images/$fileName")
                         }
 

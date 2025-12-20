@@ -1,7 +1,5 @@
 package com.example.service
 
-import io.ktor.http.HttpStatusCode
-import io.ktor.server.response.respond
 import net.coobird.thumbnailator.Thumbnails
 import org.koin.java.KoinJavaComponent.inject
 import software.amazon.awssdk.core.sync.RequestBody
@@ -38,16 +36,21 @@ class S3Service : IS3Service {
             CompressedImage(image, contentType, "bin")
         }
 
-        s3Client.putObject(
-            PutObjectRequest.builder()
-                .bucket(bucketName)
-                .key(fileName)
-                .contentType(compressed.contentType)
-                .build(),
-            RequestBody.fromBytes(compressed.bytes)
-        )
+        try {
+            s3Client.putObject(
+                PutObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(fileName)
+                    .contentType(compressed.contentType)
+                    .build(),
+                RequestBody.fromBytes(compressed.bytes)
+            )
 
-        return true
+            return true
+        } catch (e: Exception) {
+            print(e.message)
+            return false
+        }
     }
 
     private fun compressImageToUnder(
