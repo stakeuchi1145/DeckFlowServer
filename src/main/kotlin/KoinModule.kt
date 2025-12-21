@@ -38,9 +38,9 @@ object KoinModule {
         single<DataSource> {
             // --- DB設定 ---
             val config = HikariConfig().apply {
-                jdbcUrl = System.getenv("DB_URL") ?: "jdbc:postgresql://localhost:15432/deckflow"
-                username = System.getenv("DB_USER") ?: "deckflow_user"
-                password = System.getenv("DB_PASSWORD") ?: "secret"
+                jdbcUrl = System.getenv("DB_URL") ?: throw IllegalStateException("DB_URL is not set")
+                username = System.getenv("DB_USER") ?: throw IllegalStateException("DB_USER is not set")
+                password = System.getenv("DB_PASSWORD") ?: throw IllegalStateException("DB_PASSWORD is not set")
                 maximumPoolSize = 10
             }
 
@@ -53,7 +53,7 @@ object KoinModule {
         single<IPackRepository> { PackRepository() }
 
         single<FirebaseService> {
-            val credentialsPath = System.getenv("FIREBASE_CREDENTIALS_PATH") ?: "serviceAccountKey.json"
+            val credentialsPath = System.getenv("FIREBASE_CREDENTIALS_PATH") ?: throw IllegalStateException("FIREBASE_CREDENTIALS_PATH is not set")
             val serviceAccount =
                 FileInputStream(credentialsPath)
 
@@ -70,14 +70,14 @@ object KoinModule {
             S3Client.builder()
                 .endpointOverride(
                     System.getenv("S3_ENDPOINT")?.let {
-                        URI(it)
-                    } ?: URI.create("http://localhost:9000")
+                        URI.create(it) ?: throw IllegalStateException("S3_ENDPOINT is not valid")
+                    }
                 )
                 .credentialsProvider(
                     StaticCredentialsProvider.create(
                         AwsBasicCredentials.create(
-                            System.getenv("S3_ACCESS_KEY_ID") ?: "deckflowadmin",
-                            System.getenv("S3_SECRET_ACCESS_KEY") ?: "deckflowsecret"
+                            System.getenv("S3_ACCESS_KEY_ID") ?: throw IllegalStateException("S3_ACCESS_KEY_ID is not set"),
+                            System.getenv("S3_SECRET_ACCESS_KEY") ?: throw IllegalStateException("S3_SECRET_ACCESS_KEY is not set")
                         )
                     )
                 )
